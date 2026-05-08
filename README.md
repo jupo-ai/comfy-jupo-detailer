@@ -10,7 +10,7 @@ ComfyUI用のDetailer補助ノード集です。
 
 ```bash
 cd ComfyUI/custom_nodes
-git clone <this repository url> comfy-jupo-detailer
+git clone https://github.com/jupo-ai/comfy-jupo-detailer.git
 cd ../
 python -m pip install -r custom_nodes/comfy-jupo-detailer/requirements.txt
 ```
