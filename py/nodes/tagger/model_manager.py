@@ -3,15 +3,9 @@ import folder_paths
 import requests
 from tqdm import tqdm
 
+from ...modules.tagger import KNOWN_TAGGERS, get_model_spec
 
-KNOWN_TAGGERS = [
-    "wd-eva02-large-tagger-v3",
-    "wd-vit-large-tagger-v3",
-    "wd-v1-4-swinv2-tagger-v2",
-    "wd-vit-tagger-v3",
-]
-
-DEFAULT_MODELS_DIR = Path(__file__).parent.parent.parent / "tagger_models"
+DEFAULT_MODELS_DIR = Path(__file__).parents[3] / "tagger_models"
 
 
 def get_models_dir() -> Path:
@@ -32,36 +26,40 @@ class ModelManager:
         if ext.startswith("."):
             ext = ext.lstrip(".")
         return self.models_dir / f"{model_name}.{ext}"
+
+
+    def get_model_paths(self, model_name: str) -> dict[str, Path]:
+        spec = get_model_spec(model_name)
+        return {
+            file.filename: self.get_model_path(model_name, file.ext)
+            for file in spec.files
+            if self.get_model_path(model_name, file.ext).exists() or file.required
+        }
     
     
     def download_model(self, model_name: str, progress_bar=None) -> bool:
-        if model_name in KNOWN_TAGGERS:
-            base_url = f"https://huggingface.co/SmilingWolf/{model_name}/resolve/main"
-            onnx_url = f"{base_url}/model.onnx"
-            csv_url = f"{base_url}/selected_tags.csv"
+        spec = get_model_spec(model_name)
+        base_url = f"https://huggingface.co/{spec.repo_id}/resolve/main"
 
-            onnx_dest = self.get_model_path(model_name, "onnx")
-            csv_dest = self.get_model_path(model_name, "csv")
+        download_jobs = []
+        for file in spec.files:
+            dest = self.get_model_path(model_name, file.ext)
+            if not dest.exists():
+                download_jobs.append((f"{base_url}/{file.filename}", dest, file.required))
 
-            download_jobs = []
-            if not onnx_dest.exists():
-                download_jobs.append((onnx_url, onnx_dest))
-            if not csv_dest.exists():
-                download_jobs.append((csv_url, csv_dest))
+        progress_state = None
+        if progress_bar is not None and download_jobs:
+            progress_state = {
+                "downloaded": 0,
+                "total": sum(self._get_content_length(url) for url, _, _ in download_jobs),
+            }
 
-            progress_state = None
-            if progress_bar is not None and download_jobs:
-                progress_state = {
-                    "downloaded": 0,
-                    "total": sum(self._get_content_length(url) for url, _ in download_jobs),
-                }
-
-            for url, dest in download_jobs:
-                if not self._download_file(url, dest, progress_bar, progress_state):
+        for url, dest, required in download_jobs:
+            if not self._download_file(url, dest, progress_bar, progress_state):
+                if required:
                     return False
 
-            return True
-        return False
+        return True
     
     
     def _get_content_length(self, url: str) -> int:

@@ -117,7 +117,7 @@ Inputs:
 
 Taggerモデルは初回実行時に自動ダウンロードされます。
 
-保存先は、ComfyUIの `extra_model_paths.yaml` で `tagger` が登録されている場合はそのディレクトリを使います。登録されていない場合は、この拡張内の `py/tagger_models` を使用します。
+保存先は、ComfyUIの `extra_model_paths.yaml` で `tagger` が登録されている場合はそのディレクトリを使います。登録されていない場合は、この拡張直下の `tagger_models` を使用します。
 
 例:
 
