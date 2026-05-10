@@ -26,6 +26,7 @@ function rememberWidget(widget) {
     WIDGET_ORIGINALS.set(widget, {
         type: widget.type,
         computeSize: widget.computeSize,
+        optionsHidden: widget.options?.hidden,
     });
 }
 
@@ -36,23 +37,44 @@ function setWidgetVisible(node, name, visible) {
     rememberWidget(widget);
     const original = WIDGET_ORIGINALS.get(widget);
 
-    widget.hidden = !visible;
-    widget.disabled = !visible;
-    widget.type = visible ? original.type : `jupo_hidden:${name}`;
-    widget.computeSize = visible
-        ? original.computeSize
-        : () => [0, -4];
+    widget.options ??= {};
+    if (visible) {
+        widget.type = original.type;
+        widget.computeSize = original.computeSize;
+        widget.hidden = false;
+        widget.disabled = false;
+        widget.options.hidden = original.optionsHidden ?? false;
+    } else {
+        widget.options.hidden = true;
+        widget.hidden = true;
+        widget.disabled = true;
+        widget.type = original.type;
+        widget.computeSize = () => [0, -4];
+    }
 
     widget.linkedWidgets?.forEach(linkedWidget => {
         rememberWidget(linkedWidget);
         const linkedOriginal = WIDGET_ORIGINALS.get(linkedWidget);
-        linkedWidget.hidden = !visible;
-        linkedWidget.disabled = !visible;
-        linkedWidget.type = visible ? linkedOriginal.type : `jupo_hidden:${name}`;
-        linkedWidget.computeSize = visible
-            ? linkedOriginal.computeSize
-            : () => [0, -4];
+        linkedWidget.options ??= {};
+        if (visible) {
+            linkedWidget.type = linkedOriginal.type;
+            linkedWidget.computeSize = linkedOriginal.computeSize;
+            linkedWidget.hidden = false;
+            linkedWidget.disabled = false;
+            linkedWidget.options.hidden = linkedOriginal.optionsHidden ?? false;
+        } else {
+            linkedWidget.options.hidden = true;
+            linkedWidget.hidden = true;
+            linkedWidget.disabled = true;
+            linkedWidget.type = linkedOriginal.type;
+            linkedWidget.computeSize = () => [0, -4];
+        }
     });
+}
+
+function refreshNodeWidgets(node) {
+    if (!node.widgets) return;
+    node.widgets = [...node.widgets];
 }
 
 function updateOutputResizeWidgets(node) {
@@ -66,6 +88,7 @@ function updateOutputResizeWidgets(node) {
     setWidgetVisible(node, "output_width", isConstant);
     setWidgetVisible(node, "output_height", isConstant);
     setWidgetVisible(node, "output_padding", doesResize);
+    refreshNodeWidgets(node);
 
     const computedSize = node.computeSize?.();
     if (computedSize && node.size) {

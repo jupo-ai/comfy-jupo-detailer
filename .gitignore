@@ -170,9 +170,5 @@ cython_debug/
 # Ruff stuff:
 .ruff_cache/
 
-# Tagger models
-/tagger_models/*
-!/tagger_models/put_here_tagger_models
-
 # PyPI configuration file
 .pypirc
